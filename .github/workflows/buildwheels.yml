@@ -68,14 +68,14 @@ jobs:
         env:
           if: matrix.mly=='manylinux2014'
           CIBW_SKIP: pp* cp37-macosx_arm64 *-macosx_universal2 cp36-macosx_arm64
-          CIBW_BEFORE_BUILD_LINUX: sh -c 'yum install cairo-devel fribidi -y || true'
+          CIBW_TEST_SKIP: "*-manylinux_{aarch64,ppc64le,s390x} *-musllinux_* *-macosx_arm64 *-macosx_universal2:arm64"
 
       - name: set environ for !manylinux2014
         run: echo "env set for os=${{ matrix.os }} mly=${{ matrix.mly }}"
         env:
           if: matrix.mly!='manylinux2014'
           CIBW_SKIP: pp* *-musllinux_* cp37-macosx_arm64 *-macosx_universal2 cp36-macosx_arm64
-          CIBW_BEFORE_BUILD_LINUX: sh -c 'yum install cairo-devel fribidi -y || true'
+          CIBW_TEST_SKIP: "*"
 
       - name: Build wheels
         run: |
@@ -83,11 +83,9 @@ jobs:
         env:
           CIBW_MANYLINUX_X86_64_IMAGE: ${{matrix.mly}}
           CIBW_MANYLINUX_I686_IMAGE: ${{matrix.mly}}
-          #CIBW_BEFORE_TEST: pip install --no-cache-dir pyphen
-          #CIBW_TEST_REQUIRES: "${{ matrix.os != 'macos-latest' && 'pyphen pycairo rlPyCairo' || 'pyphen' }}"
+          CIBW_BEFORE_BUILD_LINUX: sh -c 'yum install cairo-devel fribidi -y || true'
           # Will avoid testing on emulated architectures
           # Skip trying to test arm64 builds on Intel Macs
-          CIBW_TEST_SKIP: "*-manylinux_{aarch64,ppc64le,s390x} *-musllinux_* *-macosx_arm64 *-macosx_universal2:arm64"
           CIBW_TEST_COMMAND: python -u -c "import sys,os,subprocess;r=subprocess.call((sys.executable,'-u',os.path.join(r'{project}','setup.py'),'tests-postinstall','--show-env','--verbose','--pip-install=pyphen','--pip-install=rlPyCairo','--rl-index-url=https://${{secrets.CITOOLS_USER}}:${{secrets.CITOOLS_PASSWORD}}@www.reportlab.com/pypi','--rl-pip-install=pyfribidi'),stderr=subprocess.STDOUT,timeout=180);marker=20*(chr(33) if r else '=');print('%s test command --> %s %s'%(marker,r,marker));sys.exit(r if '${{matrix.mly}}'=='manylinux2014' else 0)" 2>&1
           CIBW_BUILD_VERBOSITY: 3
           CIBW_ARCHS_LINUX: auto aarch64 #needs quemu setup
