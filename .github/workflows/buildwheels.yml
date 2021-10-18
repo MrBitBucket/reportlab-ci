@@ -7,8 +7,16 @@ on:
       - master
 
 jobs:
+  dump-context:
+    steps:
+      - name: Dump github context
+        run:   echo "$GITHUB_CONTEXT"
+        shell: bash
+        env:
+         GITHUB_CONTEXT: ${{ toJson(github) }}
   clear-cache:
-    if: ${{ github.event.repository.name }} == 'reportlab-mirror'
+    needs: [dump-context]
+    if: github.event.repository.name == 'reportlab-mirror'
     name: clear-cache
     runs-on: ubuntu-latest
     steps:
@@ -83,7 +91,7 @@ jobs:
           name: reportlab-lin-win-mac
           path: ./wheelhouse/*.whl
   email:
-    if: ${{ github.event.repository.name }} == 'reportlab-mirror'
+    if: github.event.repository.name == 'reportlab-mirror'
     name: email
     needs: [build-wheels-linux-mac-windows]
     runs-on: ubuntu-latest
