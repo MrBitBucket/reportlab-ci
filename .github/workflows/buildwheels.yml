@@ -40,11 +40,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         mly: [manylinux2014, manylinux2010]
-      exclude:
-        - os: macos-latest
-          mly: manylinux2010
-        - os: windows-latest
-          mly: manylinux2010
+        exclude:
+          - os: macos-latest
+            mly: manylinux2010
+          - os: windows-latest
+            mly: manylinux2010
 
     steps:
       - uses: actions/checkout@v2
