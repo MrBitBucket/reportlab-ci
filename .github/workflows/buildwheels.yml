@@ -64,18 +64,18 @@ jobs:
           python -c "import os;print('+++++ cwd=%r;dir=%r' % (os.getcwd(),os.listdir('.')))"
 
       - name: set environ for manylinux2014
+        run: echo "env set for os=${{ matrix.os }} mly=${{ matrix.mly }}"
         env:
           if: matrix.mly=='manylinux2014'
           CIBW_SKIP: pp* cp37-macosx_arm64 *-macosx_universal2 cp36-macosx_arm64
           CIBW_BEFORE_BUILD_LINUX: sh -c 'yum install cairo-devel fribidi -y || true'
-          run: echo "env set for os=${{ matrix.os }} mly=${{ matrix.mly }}"
 
       - name: set environ for !manylinux2014
+        run: echo "env set for os=${{ matrix.os }} mly=${{ matrix.mly }}"
         env:
           if: matrix.mly!='manylinux2014'
           CIBW_SKIP: pp* *-musllinux_* cp37-macosx_arm64 *-macosx_universal2 cp36-macosx_arm64
           CIBW_BEFORE_BUILD_LINUX: sh -c 'yum install cairo-devel fribidi -y || true'
-          run: echo "env set for os=${{ matrix.os }} mly=${{ matrix.mly }}"
 
       - name: Build wheels
         run: |
