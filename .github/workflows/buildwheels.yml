@@ -7,24 +7,16 @@ on:
       - master
 
 jobs:
-  dump-context:
-    steps:
   clear-cache:
-    steps:
+    if: github.event.repository.name == 'reportlab-mirror'
     name: clear-cache
     runs-on: ubuntu-latest
-      - name: Dump github context
-        run:   echo "$GITHUB_CONTEXT"
-        shell: bash
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
+    steps:
       - name: setup python for clear-cache
-        if: github.event.repository.name == 'reportlab-mirror'
         uses: actions/setup-python@v2
         with:
           python-version: 3.9
       - name: clear
-        if: github.event.repository.name == 'reportlab-mirror'
         env:
           CITOOLS_USER: "${{secrets.CITOOLS_USER}}"
           CITOOLS_PASSWORD: "${{secrets.CITOOLS_PASSWORD}}"
