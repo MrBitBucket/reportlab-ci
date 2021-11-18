@@ -79,12 +79,12 @@ jobs:
           CITOOLS_PASSWORD: "${{secrets.CITOOLS_PASSWORD}}"
         run: |
           python -mpip install --no-cache https://hg.reportlab.com/hg-public/rl-ci-tools/archive/tip.tar.gz -U
-          python -mrl_ci_tools upload-caches --subdir="cibuildwheel/reportlab" --verbosity=1 ./wheelhouse/*.whl
+          python -mrl_ci_tools upload-caches --subdir="reportlab-ci" --verbosity=1 ./wheelhouse/*.whl
           python -mrl_ci_tools env-upload
 
       - uses: actions/upload-artifact@v2
         with:
-          name: reportlab-lin-win-mac
+          name: reportlab-lin-win-mac-ci
           path: ./wheelhouse/*.whl
   email:
     if: github.event.repository.name == 'reportlab-mirror'
