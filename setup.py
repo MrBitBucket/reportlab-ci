@@ -1,6 +1,6 @@
-#Copyright ReportLab Europe Ltd. 2000-2017
+#Copyright ReportLab Europe Ltd. 2000-2021
 #see license.txt for license details
-__version__='3.6.2'
+__version__='3.6.3'
 import os, sys, glob, shutil, re, sysconfig, traceback, io, subprocess
 platform = sys.platform
 pjoin = os.path.join
@@ -776,6 +776,7 @@ def main():
                 'Programming Language :: Python :: 3.8',
                 'Programming Language :: Python :: 3.9',
                 'Programming Language :: Python :: 3.10',
+                'Programming Language :: Python :: 3.11',
                 ],
             
             #this probably only works for setuptools, but distutils seems to ignore it
