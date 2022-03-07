@@ -9,7 +9,6 @@ strTypes = (bytes,str)
 isPy39 = sys.version_info[:2]>=(3,9)
 
 haveNameConstant = hasattr(ast,'NameConstant')
-haveMatMult = haveMultiStarred = hasattr(ast,'MatMult')
 import textwrap
 
 class BadCode(ValueError):
@@ -17,7 +16,6 @@ class BadCode(ValueError):
 
 # For AugAssign the operator must be converted to a string.
 augOps = {
-	# Shared by python2 and python3
 	ast.Add: '+=',
 	ast.Sub: '-=',
 	ast.Mult: '*=',
@@ -29,12 +27,9 @@ augOps = {
 	ast.BitOr: '|=',
 	ast.BitXor: '^=',
 	ast.BitAnd: '&=',
-	ast.FloorDiv: '//='
+	ast.FloorDiv: '//=',
+	ast.MatMult: '@=',
 }
-
-if haveMatMult:
-	augOps[ast.MatMult] = '@='
-
 
 # For creation allowed magic method names. See also
 # https://docs.python.org/3/reference/datamodel.html#special-method-names
@@ -430,23 +425,12 @@ class UntrustedAstTransformer(ast.NodeTransformer):
 
 		needs_wrap = False
 
-		# In python2.7 till python3.4 '*args', '**kwargs' have dedicated
-		# attributes on the ast.Call node.
-		# In python 3.5 and greater this has changed due to the fact that
-		# multiple '*args' and '**kwargs' are possible.
-		# '*args' can be detected by 'ast.Starred' nodes.
-		# '**kwargs' can be deteced by 'keyword' nodes with 'arg=None'.
+		for pos_arg in node.args:
+			if isinstance(pos_arg, ast.Starred):
+				needs_wrap = True
 
-		if haveMultiStarred:
-			for pos_arg in node.args:
-				if isinstance(pos_arg, ast.Starred):
-					needs_wrap = True
-
-			for keyword_arg in node.keywords:
-				if keyword_arg.arg is None:
-					needs_wrap = True
-		else:
-			if (node.starargs is not None) or (node.kwargs is not None):
+		for keyword_arg in node.keywords:
+			if keyword_arg.arg is None:
 				needs_wrap = True
 
 		node = self.visit_children(node)
@@ -839,7 +823,7 @@ class UntrustedAstTransformer(ast.NodeTransformer):
 def astFormat(node):
 	return ast.dump(copy.deepcopy(node),annotate_fields=True, include_attributes=True,indent=4)
 
-class __rl_SafeIter__(object):
+class __rl_SafeIter__:
 	def __init__(self, it, owner):
 		self.__rl_iter__ = owner().__rl_real_iter__(it)
 		self.__rl_owner__ = owner
@@ -865,7 +849,7 @@ def safer_globals(g=None):
 
 math_log10 = math.log10
 __rl_undef__ = object()
-class __RL_SAFE_ENV__(object):
+class __RL_SAFE_ENV__:
 	__time_time__ = time.time
 	__weakref_ref__ = weakref.ref
 	__slicetype__ = type(slice(0))
@@ -889,7 +873,7 @@ class __RL_SAFE_ENV__(object):
 						args = (self.__rl_getiter__(it),)
 				return dict.__new__(cls,*args,**kwds)
 
-		class __rl_missing_func__(object):
+		class __rl_missing_func__:
 			def __init__(self,name):
 				self.__name__ = name
 			def __call__(self,*args,**kwds):
@@ -1205,7 +1189,7 @@ class __RL_SAFE_ENV__(object):
 			if obi:
 				G['__builtins__'] = obi[0]
 
-class __rl_safe_eval__(object):
+class __rl_safe_eval__:
 	'''creates one environment and re-uses it'''
 	mode = 'eval'
 	def __init__(self):

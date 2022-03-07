@@ -3,11 +3,12 @@
 __version__='3.3.0'
 
 """helpers for pdf encryption/decryption"""
-import sys, os, tempfile
+import sys, os
 from binascii import hexlify, unhexlify
-from reportlab.lib.utils import getBytesIO, md5, asBytes, int2Byte, char2int, rawUnicode, rawBytes, asNative
+from io import BytesIO
+
+from reportlab.lib.utils import md5, asBytes, int2Byte, rawBytes, asNative
 from reportlab.pdfgen.canvas import Canvas
-from reportlab.pdfbase import pdfutils
 from reportlab.pdfbase.pdfdoc import PDFObject
 from reportlab.platypus.flowables import Flowable
 from reportlab import rl_config
@@ -22,7 +23,6 @@ def xorKey(num,key):
     "xor's each byte of the key with the number, which is <256"
     if num==0: return key
     return bytes(num^k for k in key)
-bytes3 = bytes
 
 #AR debug hooks - leaving in for now
 CLOBBERID = 0  # set a constant Doc ID to allow comparison with other software like iText
@@ -212,7 +212,7 @@ class StandardEncryption:
 
             # the permission array should be enrypted in the Perms field
             encrypter = pyaes.Encrypter(pyaes.AESModeOfOperationCBC(self.key, iv=iv))
-            self.Perms = encrypter.feed(bytes3(permsarr))
+            self.Perms = encrypter.feed(bytes(permsarr))
             self.Perms += encrypter.feed()
                         
             if DEBUG:
@@ -253,7 +253,7 @@ class StandardEncryptionDictionary(PDFObject):
         self.revision = revision
     def format(self, document):
         # use a dummy document to bypass encryption
-        from reportlab.pdfbase.pdfdoc import DummyDoc, PDFDictionary, PDFString, PDFName
+        from reportlab.pdfbase.pdfdoc import DummyDoc, PDFDictionary, PDFName
         dummy = DummyDoc()
         dict = {"Filter": PDFName("Standard"),
                 "O": hexText(self.O),
@@ -558,7 +558,7 @@ See https://www.reportlab.com/downloads''')
     firstPageSize = bboxInfo['PageForms0'][2:]
 
     #now make a new PDF document
-    buf = getBytesIO()
+    buf = BytesIO()
     canv = Canvas(buf, pagesize=firstPageSize)
 
     # set a standard ID while debugging
@@ -764,7 +764,6 @@ See PdfEncryptIntro.pdf for more information.
         print(usage)
 
 def main():
-    from reportlab.rl_config import verbose
     scriptInterp()
 
 if __name__=="__main__": #NO RUNTESTS

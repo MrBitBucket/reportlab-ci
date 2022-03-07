@@ -71,14 +71,14 @@ Recently added features are:
 - add pyRXP support (TODO)
 """
 __version__='3.3.0'
-import os, sys, imp, pprint, getopt, glob, re
+import os, sys, getopt, glob, re
+from io import BytesIO
 
 from reportlab import rl_config
-from reportlab.lib import styles
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from reportlab.lib.utils import getBytesIO, isStr, isBytes, isUnicode
-from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER, TA_JUSTIFY
+from reportlab.lib.utils import isStr, isBytes, isUnicode
+from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas
 from reportlab.platypus.doctemplate import SimpleDocTemplate
@@ -353,7 +353,7 @@ class PPPresentation:
         if self.verbose:
             print(filename)
         #canv = canvas.Canvas(filename, pagesize = pageSize)
-        outfile = getBytesIO()
+        outfile = BytesIO()
         if self.notes:
             #translate the page from landscape to portrait
             pageSize= pageSize[1], pageSize[0]
@@ -404,7 +404,7 @@ class PPPresentation:
         if self.sourceFilename :
             filename = os.path.splitext(self.sourceFilename)[0] + '.pdf'
 
-        outfile = getBytesIO()
+        outfile = BytesIO()
         doc = SimpleDocTemplate(outfile, pagesize=rl_config.defaultPageSize, showBoundary=0)
         doc.leftMargin = 1*cm
         doc.rightMargin = 1*cm

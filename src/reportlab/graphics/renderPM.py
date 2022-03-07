@@ -13,14 +13,15 @@ Other functions let you create a PM drawing as string or into a PM buffer.
 Execute the script to see some test drawings."""
 
 from reportlab.graphics.shapes import *
-from reportlab.graphics.renderbase import StateTracker, getStateDelta, renderScaledDrawing
+from reportlab.graphics.renderbase import getStateDelta, renderScaledDrawing
 from reportlab.pdfbase.pdfmetrics import getFont, unicode2T1
-from math import sin, cos, pi, ceil
-from reportlab.lib.utils import getStringIO, getBytesIO, open_and_read, isUnicode
+from reportlab.lib.utils import isUnicode
 from reportlab import rl_config
 from .utils import setFont as _setFont, RenderPMError
 
 import os, sys
+from io import BytesIO, StringIO
+from math import sin, cos, pi, ceil
 
 try:
     from reportlab.graphics import _renderPM
@@ -342,20 +343,9 @@ class PMCanvas:
         elif fmt in ('PCT','PICT'):
             return _saveAsPICT(im,fn,fmt,transparent=configPIL.get('transparent',None))
         elif fmt in ('PNG','BMP', 'PPM'):
-            if fmt=='PNG':
-                try:
-                    from PIL import PngImagePlugin
-                except ImportError:
-                    import PngImagePlugin
-            elif fmt=='BMP':
-                try:
-                    from PIL import BmpImagePlugin
-                except ImportError:
-                    import BmpImagePlugin
+            pass
         elif fmt in ('JPG','JPEG'):
             fmt = 'JPEG'
-        elif fmt in ('GIF',):
-            pass
         else:
             raise RenderPMError("Unknown image kind %s" % fmt)
         if fmt=='TIFF':
@@ -384,7 +374,7 @@ class PMCanvas:
             markfilename(fn,ext=fmt)
 
     def saveToString(self,fmt='GIF'):
-        s = getBytesIO()
+        s = BytesIO()
         self.saveToFile(s,fmt=fmt)
         return s.getvalue()
 
@@ -693,7 +683,7 @@ def drawToFile(d,fn,fmt='GIF', dpi=72, bg=0xffffff, configPIL=None, showBoundary
     c.saveToFile(fn,fmt)
 
 def drawToString(d,fmt='GIF', dpi=72, bg=0xffffff, configPIL=None, showBoundary=rl_config._unset_,backend=rl_config.renderPMBackend):
-    s = getBytesIO()
+    s = BytesIO()
     drawToFile(d,s,fmt=fmt, dpi=dpi, bg=bg, configPIL=configPIL,backend=backend)
     return s.getvalue()
 
@@ -737,7 +727,7 @@ def test(outDir='pmout', shout=False):
         msg = 'Problem drawing %s fmt=%s file'%(name,fmt)
         if shout or verbose>2: print(msg)
         errs.append('<br/><h2 style="color:red">%s</h2>' % msg)
-        buf = getStringIO()
+        buf = StringIO()
         traceback.print_exc(file=buf)
         errs.append('<pre>%s</pre>' % escape(buf.getvalue()))
 

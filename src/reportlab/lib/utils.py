@@ -4,18 +4,15 @@
 __version__='3.5.34'
 __doc__='''Gazillions of miscellaneous internal utility functions'''
 
-import os, sys, time, types, datetime, ast, importlib
-from functools import reduce as functools_reduce
-literal_eval = ast.literal_eval
-try:
-    from base64 import decodebytes as base64_decodebytes, encodebytes as base64_encodebytes
-except ImportError:
-    from base64 import decodestring as base64_decodebytes, encodestring as base64_encodebytes
-from reportlab.lib.logger import warnOnce
-from reportlab.lib.rltempfile import get_rl_tempfile, get_rl_tempdir, _rl_getuid
+import os, pickle, sys, time, types, datetime, importlib
+from ast import literal_eval
+from base64 import decodebytes as base64_decodebytes, encodebytes as base64_encodebytes
+from io import BytesIO
+
+from reportlab.lib.rltempfile import get_rl_tempfile, get_rl_tempdir
 from . rl_safe_eval import rl_safe_exec, rl_safe_eval, safer_globals
 
-class __UNSET__(object):
+class __UNSET__:
     @staticmethod
     def __bool__():
         return False
@@ -24,11 +21,6 @@ class __UNSET__(object):
         return '__UNSET__'
     __repr__ = __str__
 __UNSET__ = __UNSET__()
-
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 
 try:
     from hashlib import md5
@@ -64,8 +56,6 @@ def isNative(v):
 #isBytes for bytes strings only
 #isUnicode for proper unicode
 _rl_NoneType=type(None)
-bytesT = bytes
-unicodeT = str
 strTypes = (str,bytes)
 def _digester(s):
     return md5(s if isBytes(s) else s.encode('utf8')).hexdigest()
@@ -119,22 +109,6 @@ def isNonPrimitiveInstance(x):
 
 def instantiated(v):
     return not isinstance(v,type)
-
-from string import ascii_letters, ascii_uppercase, ascii_lowercase
-
-from io import BytesIO, StringIO
-def getBytesIO(buf=None):
-    '''unified StringIO instance interface'''
-    if buf:
-        return BytesIO(buf)
-    return BytesIO()
-_bytesIOType = BytesIO 
-
-def getStringIO(buf=None):
-    '''unified StringIO instance interface'''
-    if buf:
-        return StringIO(buf)
-    return StringIO()
 
 def bytestr(x,enc='utf8'):
     if isinstance(x,str):
@@ -415,35 +389,18 @@ def recursiveImport(modulename, baseDir=None, noCWD=0, debug=0):
         if debug:
             print('===== restore sys.path=%s' % repr(opath))
 
-def import_zlib():
-    try:
-        import zlib
-    except ImportError:
-        zlib = None
-        from reportlab.rl_config import ZLIB_WARNINGS
-        if ZLIB_WARNINGS: warnOnce('zlib not available')
-    return zlib
-
 # Image Capability Detection.  Set a flag haveImages
-# to tell us if either PIL or Java imaging libraries present.
+# to tell us if PIL library is present.
 # define PIL_Image as either None, or an alias for the PIL.Image
 # module, as there are 2 ways to import it
-if sys.platform[0:4] == 'java':
+try:
+    from PIL import Image
+except ImportError:
     try:
-        import javax.imageio
-        import java.awt.image
-        haveImages = 1
-    except:
-        haveImages = 0
-else:
-    try:
-        from PIL import Image
+        import Image
     except ImportError:
-        try:
-            import Image
-        except ImportError:
-            Image = None
-    haveImages = Image is not None
+        Image = None
+haveImages = Image is not None
 
 class ArgvDictValue:
     '''A type to allow clients of getArgvDict to specify a conversion function'''
@@ -525,7 +482,7 @@ def open_for_read_by_name(name,mode='b'):
         name = _startswith_rl(name)
         s = __rl_loader__.get_data(name)
         if 'b' not in mode and os.linesep!='\n': s = s.replace(os.linesep,'\n')
-        return getBytesIO(s)
+        return BytesIO(s)
 
 from urllib.parse import unquote, urlparse
 from urllib.request import urlopen
@@ -584,7 +541,7 @@ def open_for_read(name,mode='b'):
                     purl = urlparse(name)
                     if purl[0] and not ((purl[0] in ('data','file') or trustedHosts.match(purl[1])) and (purl[0] in trustedSchemes)):
                         raise ValueError('Attempted untrusted host access')
-                return getBytesIO((datareader if name[:5].lower()=='data:' else rlUrlRead)(name))
+                return BytesIO((datareader if name[:5].lower()=='data:' else rlUrlRead)(name))
             except:
                 raise IOError('Cannot open resource "%s"' % name)
     globals()['open_for_read'] = open_for_read
@@ -668,8 +625,8 @@ def _isPILImage(im):
     except AttributeError:
         return 0
 
-class ImageReader(object):
-    "Wraps up either PIL or Java to get data from bitmaps"
+class ImageReader:
+    "Wraps up PIL to get data from bitmaps"
     _cache={}
     _max_image_size = None
     def __init__(self, fileName,ident=None):
@@ -696,7 +653,7 @@ class ImageReader(object):
             try:
                 from reportlab.rl_config import imageReaderFlags
                 self.fp = open_for_read(fileName,'b')
-                if isinstance(self.fp,_bytesIOType): imageReaderFlags=0 #avoid messing with already internal files
+                if isinstance(self.fp, BytesIO): imageReaderFlags=0 #avoid messing with already internal files
                 if imageReaderFlags>0:  #interning
                     data = self.fp.read()
                     if imageReaderFlags&2:  #autoclose
@@ -709,7 +666,7 @@ class ImageReader(object):
                             from rl_config import register_reset
                             register_reset(self._cache.clear)
                         data=self._cache.setdefault(_digester(data),data)
-                    self.fp=getBytesIO(data)
+                    self.fp=BytesIO(data)
                 elif imageReaderFlags==-1 and isinstance(fileName,str):
                     #try Ralf Schmitt's re-opening technique of avoiding too many open files
                     self.fp.close()
@@ -747,11 +704,7 @@ class ImageReader(object):
         return '[%s@%s%s%s]' % (self.__class__.__name__,hex(id(self)),ident and (' ident=%r' % ident) or '',fn and (' filename=%r' % fn) or '')
 
     def _read_image(self,fp):
-        if sys.platform[0:4] == 'java':
-            from javax.imageio import ImageIO
-            return ImageIO.read(fp)
-        else:
-            return Image.open(fp)
+        return Image.open(fp)
 
     @classmethod
     def check_pil_image_size(cls, im):
@@ -780,11 +733,7 @@ class ImageReader(object):
 
     def getSize(self):
         if (self._width is None or self._height is None):
-            if sys.platform[0:4] == 'java':
-                self._width = self._image.getWidth()
-                self._height = self._image.getHeight()
-            else:
-                self._width, self._height = self._image.size
+            self._width, self._height = self._image.size
         return (self._width, self._height)
 
     def getRGBData(self):
@@ -792,42 +741,24 @@ class ImageReader(object):
         try:
             if self._data is None:
                 self._dataA = None
-                if sys.platform[0:4] == 'java':
-                    import jarray
-                    from java.awt.image import PixelGrabber
-                    width, height = self.getSize()
-                    buffer = jarray.zeros(width*height, 'i')
-                    pg = PixelGrabber(self._image, 0,0,width,height,buffer,0,width)
-                    pg.grabPixels()
-                    # there must be a way to do this with a cast not a byte-level loop,
-                    # I just haven't found it yet...
-                    pixels = []
-                    a = pixels.append
-                    for i in range(len(buffer)):
-                        rgb = buffer[i]
-                        a(chr((rgb>>16)&0xff))
-                        a(chr((rgb>>8)&0xff))
-                        a(chr(rgb&0xff))
-                    self._data = ''.join(pixels)
+                im = self._image
+                mode = self.mode = im.mode
+                if mode in ('LA','RGBA'):
+                    if getattr(Image,'VERSION','').startswith('1.1.7'):
+                        im.load()
+                    self._dataA = ImageReader(im.split()[3 if mode=='RGBA' else 1])
+                    nm = mode[:-1]
+                    im = im.convert(nm)
+                    self.mode = nm
+                elif mode not in ('L','RGB','CMYK'):
+                    if im.format=='PNG' and im.mode=='P' and 'transparency' in im.info:
+                        im = im.convert('RGBA')
+                        self._dataA = ImageReader(im.split()[3])
+                        im = im.convert('RGB')
+                    else:
+                        im = im.convert('RGB')
                     self.mode = 'RGB'
-                else:
-                    im = self._image
-                    mode = self.mode = im.mode
-                    if mode in ('LA','RGBA'):
-                        if getattr(Image,'VERSION','').startswith('1.1.7'): im.load()
-                        self._dataA = ImageReader(im.split()[3 if mode=='RGBA' else 1])
-                        nm = mode[:-1]
-                        im = im.convert(nm)
-                        self.mode = nm
-                    elif mode not in ('L','RGB','CMYK'):
-                        if im.format=='PNG' and im.mode=='P' and 'transparency' in im.info:
-                            im = im.convert('RGBA')
-                            self._dataA = ImageReader(im.split()[3])
-                            im = im.convert('RGB')
-                        else:
-                            im = im.convert('RGB')
-                        self.mode = 'RGB'
-                    self._data = (im.tobytes if hasattr(im, 'tobytes') else im.tostring)()  #make pillow and PIL both happy, for now
+                self._data = (im.tobytes if hasattr(im, 'tobytes') else im.tostring)()  #make pillow and PIL both happy, for now
             return self._data
         except:
             annotateException('\nidentity=%s'%self.identity())
@@ -837,22 +768,19 @@ class ImageReader(object):
         return width, height, self.getRGBData()
 
     def getTransparent(self):
-        if sys.platform[0:4] == 'java':
-            return None
-        else:
-            if "transparency" in self._image.info:
-                transparency = self._image.info["transparency"] * 3
-                palette = self._image.palette
+        if "transparency" in self._image.info:
+            transparency = self._image.info["transparency"] * 3
+            palette = self._image.palette
+            try:
+                palette = palette.palette
+            except:
                 try:
-                    palette = palette.palette
+                    palette = palette.data
                 except:
-                    try:
-                        palette = palette.data
-                    except:
-                        return None
-                return palette[transparency:transparency+3]
-            else:
-                return None
+                    return None
+            return palette[transparency:transparency+3]
+        else:
+            return None
 
 class LazyImageReader(ImageReader): 
     def fp(self): 
@@ -864,7 +792,7 @@ class LazyImageReader(ImageReader):
     _image=property(_image) 
 
 def getImageData(imageFileName):
-    "Get width, height and RGB pixels from image file.  Wraps Java/PIL"
+    "Get width, height and RGB pixels from image file.  Wraps PIL"
     try:
         return imageFileName.getImageData()
     except AttributeError:
@@ -897,7 +825,7 @@ class DebugMemo:
     of information which are also printed in the show() method.
     '''
     def __init__(self,fn='rl_dbgmemo.dbg',mode='w',getScript=1,modules=(),capture_traceback=1, stdout=None, **kw):
-        import time, socket
+        import socket
         self.fn = fn
         if not stdout: 
             self.stdout = sys.stdout
@@ -910,7 +838,7 @@ class DebugMemo:
         self.store = store = {}
         if capture_traceback and sys.exc_info() != (None,None,None):
             import traceback
-            s = getBytesIO()
+            s = BytesIO()
             traceback.print_exc(None,s)
             store['__traceback'] = s.getvalue()
         cwd=os.getcwd()
@@ -1001,7 +929,7 @@ class DebugMemo:
             pickle.dump(self.store,f)
         except:
             S=self.store.copy()
-            ff=getBytesIO()
+            ff=BytesIO()
             for k,v in S.items():
                 try:
                     pickle.dump({k:v},ff)
@@ -1018,7 +946,7 @@ class DebugMemo:
             f.close()
 
     def dumps(self):
-        f = getBytesIO()
+        f = BytesIO()
         self._dump(f)
         return f.getvalue()
 
@@ -1033,7 +961,7 @@ class DebugMemo:
             f.close()
 
     def loads(self,s):
-        self._load(getBytesIO(s))
+        self._load(BytesIO(s))
 
     def _show_module_versions(self,k,v):
         self._writeln(k[2:])
@@ -1368,7 +1296,7 @@ class FixedOffsetTZ(datetime.tzinfo):
     def dst(self, dt):
         return datetime.timedelta(0)
 
-class TimeStamp(object):
+class TimeStamp:
     def __init__(self,invariant=None):
         if invariant is None:
             from reportlab.rl_config import invariant

@@ -8,6 +8,7 @@ from reportlab.lib.testutils import setOutDir,makeSuiteForClasses, outputfile, p
 setOutDir(__name__)
 import os
 import unittest
+from io import BytesIO
 from reportlab.pdfgen import canvas   # gmcm 2000/10/13, pdfgen now a package
 from reportlab.lib.units import inch, cm
 from reportlab.lib import colors
@@ -720,9 +721,9 @@ cost to performance.""")
     t = c.beginText(inch, 10 * inch)
     if not haveImages:
         c.drawString(inch, 11*inch,
-                     "Python or Java Imaging Library not found! Below you see rectangles instead of images.")
+                     "Python Imaging Library not found! Below you see rectangles instead of images.")
 
-    t.textLines("""PDFgen uses the Python Imaging Library (or, under Jython, java.awt.image and javax.imageio)
+    t.textLines("""PDFgen uses the Python Imaging Library
         to process a very wide variety of image formats.
         This page shows image capabilities.  If I've done things right, the bitmap should have
         its bottom left corner aligned with the crosshairs.
@@ -1256,7 +1257,6 @@ class PdfgenTestCase(unittest.TestCase):
             c.save()
 
     def testBytesIOSaves(self):
-        from io import BytesIO
         with BytesIO() as f:
             c = canvas.Canvas(f)
             c.drawString(100, 700, 'Hello World I write to %s' % repr(f))
@@ -1271,8 +1271,7 @@ class PdfgenTestCase(unittest.TestCase):
         self.assertRaises(TypeError,c.save)
 
 def trySomeColors(C,enforceColorSpace=None):
-    from reportlab.lib.utils import getBytesIO
-    out=getBytesIO()
+    out = BytesIO()
     canv = canvas.Canvas(out,enforceColorSpace=enforceColorSpace)
     canv.setFont('Helvetica',10)
     x = 0

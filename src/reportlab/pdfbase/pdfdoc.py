@@ -14,25 +14,16 @@ The classes within this generally mirror structures in the PDF file
 and are not part of any public interface.  Instead, canvas and font
 classes are made available elsewhere for users to manipulate.
 """
-import types, binascii, codecs, time
+import binascii, codecs, zlib
 from collections import OrderedDict
 from reportlab.pdfbase import pdfutils
 from reportlab import rl_config
-from reportlab.lib.utils import import_zlib, open_for_read, makeFileName, isSeq, isBytes, isUnicode, _digester, isStr, bytestr, annotateException, TimeStamp
+from reportlab.lib.utils import open_for_read, makeFileName, isSeq, isBytes, isUnicode, _digester, isStr, bytestr, annotateException, TimeStamp
 from reportlab.lib.rl_accel import escapePDF, fp_str, asciiBase85Encode, asciiBase85Decode
 from reportlab.pdfbase import pdfmetrics
 from hashlib import md5
 
-from sys import platform
-from sys import version_info
 from sys import stderr
-
-if platform[:4] == 'java' and version_info[:2] == (2, 1):
-    # workaround for list()-bug in Jython 2.1 (should be fixed in 2.2)
-    def list(sequence):
-        def f(x):
-            return x
-        return list(map(f, sequence))
 
 class PDFError(Exception):
     pass
@@ -109,7 +100,7 @@ class NoEncryption:
         # the representation of self in file if any (should be None or PDFDict)
         return None
 
-class PDFObject(object):
+class PDFObject:
     pass
 
 class DummyDoc(PDFObject):
@@ -756,16 +747,10 @@ class ViewerPreferencesPDFDictionary(CheckedPDFDictionary):
 class PDFStreamFilterZCompress:
     pdfname = "FlateDecode"
     def encode(self, text):
-        from reportlab.lib.utils import import_zlib
-        zlib = import_zlib()
-        if not zlib: raise ImportError("cannot z-compress zlib unavailable")
         if isUnicode(text):
             text = text.encode('utf8')
         return zlib.compress(text)
     def decode(self, encoded):
-        from reportlab.lib.utils import import_zlib
-        zlib = import_zlib()
-        if not zlib: raise ImportError("cannot z-decompress zlib unavailable")
         return zlib.decompress(encoded)
 
 # need only one of these, unless we implement parameters later
@@ -1520,7 +1505,6 @@ class PDFOutlines(PDFObject):
 
 def count(tree, closedict=None):
     """utility for outline: recursively count leaves in a tuple/list tree"""
-    from operator import add
     if isinstance(tree,tuple):
         # leaf with subsections XXXX should clean up this structural usage
         (leafdict, subsections) = tree
@@ -2180,8 +2164,6 @@ class PDFImageXObject(PDFObject):
         if fp:
             self.loadImageFromJPEG(fp)
         else:
-            zlib = import_zlib()
-            if not zlib: return
             self.width, self.height = im.getSize()
             raw = im.getRGBData()
             #assert len(raw) == self.width*self.height, "Wrong amount of data for image expected %sx%s=%s got %s" % (self.width,self.height,self.width*self.height,len(raw))

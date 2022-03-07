@@ -32,10 +32,9 @@
 
 from reportlab.platypus.flowables import Flowable
 from reportlab.lib.units import inch
-from reportlab.lib.utils import ascii_uppercase, ascii_lowercase
-from string import digits as string_digits
+from string import ascii_lowercase, ascii_uppercase, digits as string_digits
 
-class Barcode(Flowable,object):
+class Barcode(Flowable):
     """Abstract Base for barcodes. Includes implementations of
     some methods suitable for the more primitive barcode types"""
 
