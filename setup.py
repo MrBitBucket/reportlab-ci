@@ -12,7 +12,8 @@ isdir = os.path.isdir
 dirname = os.path.dirname
 basename = os.path.basename
 splitext = os.path.splitext
-archName = 'amd64' if sys.maxsize > 2**32 else 'x86'    #correct for windows builds
+addrSize = 64 if sys.maxsize > 2**32 else 32
+sysconfig_platform = sysconfig.get_platform()
 
 INFOLINES=[]
 def infoline(t,
@@ -21,8 +22,7 @@ def infoline(t,
         ):
     bn = splitext(basename(sys.argv[0]))[0]
     ver = '.'.join(map(str,sys.version_info[:3]))
-    platform = sysconfig.get_platform()
-    s = '%s %s-python-%s-%s: %s' % (pfx, bn, ver, platform, t)
+    s = '%s %s-python-%s-%s: %s' % (pfx, bn, ver, sysconfig_platform, t)
     print(s)
     if add: INFOLINES.append(s)
 
@@ -189,16 +189,43 @@ def aDir(P, d, x=None):
         else:
             P.insert(x, d)
 
+def findFile(root, wanted):
+    for p, _, F in os.walk(root):
+        for fn in F:
+            if fn==wanted:  
+                return abspath(pjoin(p,fn))
+
+def freetypeVersion(fn,default='20'):
+    with open(fn,'r') as _:
+        text = _.read()
+    pat = re.compile(r'^#define\s+FREETYPE_(?P<level>MAJOR|MINOR|PATCH)\s*(?P<value>\d*)\s*$',re.M)
+    locmap=dict(MAJOR=0,MINOR=1,PATCH=2)
+    loc = ['','','']
+    for m in pat.finditer(text):
+        loc[locmap[m.group('level')]] = m.group('value')
+    loc = list(filter(None,loc))
+    return '.'.join(loc) if loc else default
+
 class inc_lib_dirs:
     L = None
     I = None
-    def __call__(self):
+    def __call__(self,libname=None):
         if self.L is None:
-            L = []
-            I = []
+            L = config('FREETYPE_PATHS','lib')
+            L = [L] if L else []
+            I = config('FREETYPE_PATHS','inc')
+            I = [I] if I else []
             if platform == "cygwin":
                 aDir(L, os.path.join("/usr/lib", "python%s" % sys.version[:3], "config"))
             elif platform == "darwin":
+                machine = sysconfig_platform.split('-')[-1]
+                if machine=='arm64':
+                    #probably an M1
+                    aDir(L,'/opt/homebrew/lib')
+                    aDir(I, "/opt/homebrew/include/freetype2")
+                elif machine=='x86_64':
+                    aDir(L,'/usr/local/lib')
+                    aDir(I, "/usr/local/include/freetype2")
                 # attempt to make sure we pick freetype2 over other versions
                 aDir(I, "/sw/include/freetype2")
                 aDir(I, "/sw/lib/freetype2/include")
@@ -213,7 +240,7 @@ class inc_lib_dirs:
             aDir(I, "/usr/include")
             aDir(L, "/usr/lib")
             aDir(I, "/usr/include/freetype2")
-            if archName=='amd64':
+            if addrSize==64:
                 aDir(L, "/usr/lib/lib64")
                 aDir(L, "/usr/lib/x86_64-linux-gnu")
             else:
@@ -222,6 +249,9 @@ class inc_lib_dirs:
             if prefix:
                 aDir(L, pjoin(prefix, "lib"))
                 aDir(I, pjoin(prefix, "include"))
+            if libname:
+                gsn = ''.join((('lib' if not libname.startswith('lib') else ''),libname,'*'))
+                L = list(filter(lambda _: glob.glob(pjoin(_,gsn)),L))
             self.L=L
             self.I=I
         return self.I,self.L
@@ -645,7 +675,7 @@ def main():
 
         if platform=='win32':
             target = ensureWinStuff()
-            FT_LIB = pjoin(target,'libs',archName,'freetype.lib')
+            FT_LIB = pjoin(target,'libs','amd64' if addrSize==64 else 'x86','freetype.lib')
             if not isfile(FT_LIB):
                 infoline('freetype lib %r not found' % FT_LIB, pfx='!!!!')
                 FT_LIB=[]
@@ -666,35 +696,29 @@ def main():
             else:
                 FT_LIB=FT_LIB_DIR=FT_INC_DIR=FT_MACROS=[]
         else:
-            if os.path.isdir('/usr/include/freetype2'):
-                FT_LIB_DIR = []
-                FT_INC_DIR = ['/usr/include/freetype2']
-            else:
-                FT_LIB_DIR=config('FREETYPE_PATHS','lib')
-                FT_LIB_DIR=[FT_LIB_DIR] if FT_LIB_DIR else []
-                FT_INC_DIR=config('FREETYPE_PATHS','inc')
-                FT_INC_DIR=[FT_INC_DIR] if FT_INC_DIR else []
-            I,L=inc_lib_dirs()
+            I,L=inc_lib_dirs('freetype')
             ftv = None
             for d in I:
                 if isfile(pjoin(d, "ft2build.h")):
-                    ftv = 21
+                    ftv = '21'
                     FT_INC_DIR=[d,pjoin(d, "freetype2")]
                     break
                 d = pjoin(d, "freetype2")
                 if isfile(pjoin(d, "ft2build.h")):
-                    ftv = 21
+                    ftv = '21'
                     FT_INC_DIR=[d]
                     break
                 if isdir(pjoin(d, "freetype")):
-                    ftv = 20
+                    ftv = '20'
                     FT_INC_DIR=[d]
                     break
             if ftv:
+                ftv = freetypeVersion(findFile(d,'freetype.h'),ftv)
                 FT_LIB=['freetype']
                 FT_LIB_DIR=L
                 FT_MACROS = [('RENDERPM_FT',None)]
-                infoline('# installing with freetype version %d' % ftv)
+                infoline('installing with freetype version %s' % ftv)
+                infoline('FT_LIB_DIR=%r FT_INC_DIR=%r' % (FT_LIB_DIR,FT_INC_DIR))
             else:
                 FT_LIB=FT_LIB_DIR=FT_INC_DIR=FT_MACROS=[]
         if not FT_LIB:
