@@ -26,3 +26,5 @@
 /include/
 /.hg/
 /tmp/
+/dist/
+__pycache__
