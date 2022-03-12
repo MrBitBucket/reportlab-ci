@@ -221,8 +221,12 @@ class inc_lib_dirs:
                 machine = sysconfig_platform.split('-')[-1]
                 if machine=='arm64':
                     #probably an M1
-                    aDir(L,'/opt/homebrew/lib')
-                    aDir(I, "/opt/homebrew/include/freetype2")
+                    target = pjoin(
+                                ensureResourceStuff('m1stuff.tar.gz','m1stuff','tar'),
+                                'm1stuff','m1stuff','opt','homebrew'
+                                )
+                    aDir(L,pjoin(target,'lib')
+                    aDir(I, pjoin(target,'include')
                 elif machine=='x86_64':
                     aDir(L,'/usr/local/lib')
                     aDir(I, "/usr/local/include/freetype2")
@@ -357,16 +361,24 @@ def url2data(url,returnRaw=False):
     finally:
         remotehandle.close()
 
-def ensureWinStuff(
-                    url='https://www.reportlab.com/ftp/winstuff.zip',
-                    target=pjoin(pkgDir,'build','winstuff'),
+def ensureResourceStuff(
+                ftpName='winstuff.zip',
+                buildName='winstuff',
+                extract='zip',
                 ):
+    url='https://www.reportlab.com/ftp/%s' % ftpName
+    target=pjoin(pkgDir,'build',buildName)
     done = pjoin(target,'.done')
     if not isfile(done):
         if not isdir(target):
             os.makedirs(target)
-            import zipfile, time
-            zipfile.ZipFile(url2data(url), 'r').extractall(path=target)
+            if extract=='zip':
+                import zipfile
+                zipfile.ZipFile(url2data(url), 'r').extractall(path=target)
+            elif extract=='tar':
+                import tarfile
+                tarfile.open(fileobj=url2data(url), mode='r:gz').extractall(path=target)
+            import time
             with open(done,'w') as _:
                 _.write(time.strftime('%Y%m%dU%H%M%S\n',time.gmtime()))
     return target
@@ -507,6 +519,8 @@ def performPipInstalls():
             raise ValueError('rl-pip-install requires exactly 1 --rl-index-url not %d' % len(rl_ixu))
 
 def showEnv():
+    action = -1 if specialOption('--show-env-only') else 1 if specialOption('--show-env') else 0
+    if not action: return
     print('+++++ setup.py environment')
     print('+++++ sys.version = %s' % sys.version.replace('\n',''))
     import platform
@@ -526,10 +540,11 @@ def showEnv():
     for k, v in sorted(os.environ.items()):
         print('+++++ environ[%s] = %r' % (k,v))
     print('--------------------------')
+    if action<0:
+        sys.exit(0)
 
 def main():
-    if specialOption('--show-env'):
-        showEnv()
+    showEnv()
     performPipInstalls()
     #test to see if we've a special command
     if 'test' in sys.argv \
@@ -674,7 +689,7 @@ def main():
                     ]+LIBART_SOURCES
 
         if platform=='win32':
-            target = ensureWinStuff()
+            target = ensureResourceStuff()
             FT_LIB = pjoin(target,'libs','amd64' if addrSize==64 else 'x86','freetype.lib')
             if not isfile(FT_LIB):
                 infoline('freetype lib %r not found' % FT_LIB, pfx='!!!!')
