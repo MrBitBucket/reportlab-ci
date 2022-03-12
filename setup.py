@@ -225,8 +225,8 @@ class inc_lib_dirs:
                                 ensureResourceStuff('m1stuff.tar.gz','m1stuff','tar'),
                                 'm1stuff','m1stuff','opt','homebrew'
                                 )
-                    aDir(L,pjoin(target,'lib')
-                    aDir(I, pjoin(target,'include')
+                    aDir(L,pjoin(target,'lib'))
+                    aDir(I, pjoin(target,'include'))
                 elif machine=='x86_64':
                     aDir(L,'/usr/local/lib')
                     aDir(I, "/usr/local/include/freetype2")
