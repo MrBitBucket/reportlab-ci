@@ -189,8 +189,8 @@ def aDir(P, d, x=None):
         else:
             P.insert(x, d)
 
-def findFile(root, wanted):
-    for p, _, F in os.walk(root):
+def findFile(root, wanted, followlinks=True):
+    for p, _, F in os.walk(root,followlinks=followlinks):
         for fn in F:
             if fn==wanted:  
                 return abspath(pjoin(p,fn))
@@ -207,59 +207,69 @@ def freetypeVersion(fn,default='20'):
     return '.'.join(loc) if loc else default
 
 class inc_lib_dirs:
-    L = None
-    I = None
     def __call__(self,libname=None):
-        if self.L is None:
-            L = config('FREETYPE_PATHS','lib')
-            L = [L] if L else []
-            I = config('FREETYPE_PATHS','inc')
-            I = [I] if I else []
-            if platform == "cygwin":
-                aDir(L, os.path.join("/usr/lib", "python%s" % sys.version[:3], "config"))
-            elif platform == "darwin":
-                machine = sysconfig_platform.split('-')[-1]
-                if machine=='arm64' or os.environ['ARCHFLAGS']=='-arch arm64':
-                    print('!!!!! detected darwin arm64 build')
-                    #probably an M1
-                    target = pjoin(
-                                ensureResourceStuff('m1stuff.tar.gz','m1stuff','tar'),
-                                'm1stuff','m1stuff','opt','homebrew'
-                                )
-                    aDir(L,pjoin(target,'lib'))
-                    aDir(I, pjoin(target,'include','freetype2'))
-                elif machine=='x86_64':
-                    aDir(L,'/usr/local/lib')
-                    aDir(I, "/usr/local/include/freetype2")
-                # attempt to make sure we pick freetype2 over other versions
-                aDir(I, "/sw/include/freetype2")
-                aDir(I, "/sw/lib/freetype2/include")
-                # fink installation directories
-                aDir(L, "/sw/lib")
-                aDir(I, "/sw/include")
-                # darwin ports installation directories
-                aDir(L, "/opt/local/lib")
-                aDir(I, "/opt/local/include")
-            aDir(I, "/usr/local/include")
-            aDir(L, "/usr/local/lib")
-            aDir(I, "/usr/include")
-            aDir(L, "/usr/lib")
-            aDir(I, "/usr/include/freetype2")
-            if addrSize==64:
-                aDir(L, "/usr/lib/lib64")
-                aDir(L, "/usr/lib/x86_64-linux-gnu")
-            else:
-                aDir(L, "/usr/lib/lib32")
-            prefix = sysconfig.get_config_var("prefix")
-            if prefix:
-                aDir(L, pjoin(prefix, "lib"))
-                aDir(I, pjoin(prefix, "include"))
-            if libname:
-                gsn = ''.join((('lib' if not libname.startswith('lib') else ''),libname,'*'))
-                L = list(filter(lambda _: glob.glob(pjoin(_,gsn)),L))
-            self.L=L
-            self.I=I
-        return self.I,self.L
+        L = config('FREETYPE_PATHS','lib')
+        L = [L] if L else []
+        I = config('FREETYPE_PATHS','inc')
+        I = [I] if I else []
+        if platform == "cygwin":
+            aDir(L, os.path.join("/usr/lib", "python%s" % sys.version[:3], "config"))
+        elif platform == "darwin":
+            machine = sysconfig_platform.split('-')[-1]
+            if machine=='arm64' or os.environ['ARCHFLAGS']=='-arch arm64':
+                print('!!!!! detected darwin arm64 build')
+                #probably an M1
+                target = pjoin(
+                            ensureResourceStuff('m1stuff.tar.gz','m1stuff','tar'),
+                            'm1stuff','m1stuff','opt','homebrew'
+                            )
+                aDir(L, pjoin(target,'lib'))
+                aDir(I, pjoin(target,'include','freetype2'))
+                print(f'!!!!! {target=}\n!!!!! {L=} {glob.glob(pjoin(L[-1],"*"))}\n!!!!! {I=} {glob.glob(pjoin(I[-1],"*"))}\n!!!!!')
+            elif machine=='x86_64':
+                aDir(L,'/usr/local/lib')
+                aDir(I, "/usr/local/include/freetype2")
+            # attempt to make sure we pick freetype2 over other versions
+            aDir(I, "/sw/include/freetype2")
+            aDir(I, "/sw/lib/freetype2/include")
+            # fink installation directories
+            aDir(L, "/sw/lib")
+            aDir(I, "/sw/include")
+            # darwin ports installation directories
+            aDir(L, "/opt/local/lib")
+            aDir(I, "/opt/local/include")
+        aDir(I, "/usr/local/include")
+        aDir(L, "/usr/local/lib")
+        aDir(I, "/usr/include")
+        aDir(L, "/usr/lib")
+        aDir(I, "/usr/include/freetype2")
+        if addrSize==64:
+            aDir(L, "/usr/lib/lib64")
+            aDir(L, "/usr/lib/x86_64-linux-gnu")
+        else:
+            aDir(L, "/usr/lib/lib32")
+        prefix = sysconfig.get_config_var("prefix")
+        if prefix:
+            aDir(L, pjoin(prefix, "lib"))
+            aDir(I, pjoin(prefix, "include"))
+        if libname:
+            gsn = ''.join((('lib' if not libname.startswith('lib') else ''),libname,'*'))
+            L = list(filter(lambda _: glob.glob(pjoin(_,gsn)),L))
+        for d in I:
+            mif = findFile(d,'ft2build.h')
+            if mif:
+                print(f'+++++ {d=} --> {mif=!r}')
+                break
+        else:
+            mif = None
+        if mif:
+            d = dirname(mif)
+            I = [dirname(d), d]
+            ftv = freetypeVersion(findFile(d,'freetype.h'),'22')
+        else:
+            print('!!!!! cannot find ft2build.h')
+            sys.exit(1)
+        return ftv,I,L
 inc_lib_dirs=inc_lib_dirs()
 
 def getVersionFromCCode(fn):
@@ -712,31 +722,13 @@ def main():
             else:
                 FT_LIB=FT_LIB_DIR=FT_INC_DIR=FT_MACROS=[]
         else:
-            I,L=inc_lib_dirs('freetype')
-            ftv = None
-            for d in I:
-                if isfile(pjoin(d, "ft2build.h")):
-                    ftv = '21'
-                    FT_INC_DIR=[d,pjoin(d, "freetype2")]
-                    break
-                d = pjoin(d, "freetype2")
-                if isfile(pjoin(d, "ft2build.h")):
-                    ftv = '21'
-                    FT_INC_DIR=[d]
-                    break
-                if isdir(pjoin(d, "freetype")):
-                    ftv = '20'
-                    FT_INC_DIR=[d]
-                    break
-            if ftv:
-                ftv = freetypeVersion(findFile(d,'freetype.h'),ftv)
-                FT_LIB=['freetype']
-                FT_LIB_DIR=L
-                FT_MACROS = [('RENDERPM_FT',None)]
-                infoline('installing with freetype version %s' % ftv)
-                infoline('FT_LIB_DIR=%r FT_INC_DIR=%r' % (FT_LIB_DIR,FT_INC_DIR))
-            else:
-                FT_LIB=FT_LIB_DIR=FT_INC_DIR=FT_MACROS=[]
+            ftv, I, L = inc_lib_dirs('freetype')
+            FT_LIB=['freetype']
+            FT_LIB_DIR=L
+            FT_INC_DIR=I
+            FT_MACROS = [('RENDERPM_FT',None)]
+            infoline('installing with freetype version %s' % ftv)
+            infoline('FT_LIB_DIR=%r FT_INC_DIR=%r' % (FT_LIB_DIR,FT_INC_DIR))
         if not FT_LIB:
             infoline('# installing without freetype no ttf, sorry!')
             infoline('# You need to install a static library version of the freetype2 software')
