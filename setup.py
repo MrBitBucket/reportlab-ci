@@ -227,7 +227,7 @@ class inc_lib_dirs:
                                 'm1stuff','m1stuff','opt','homebrew'
                                 )
                     aDir(L,pjoin(target,'lib'))
-                    aDir(I, pjoin(target,'include'))
+                    aDir(I, pjoin(target,'include','freetype2'))
                 elif machine=='x86_64':
                     aDir(L,'/usr/local/lib')
                     aDir(I, "/usr/local/include/freetype2")
