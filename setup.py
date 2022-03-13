@@ -195,6 +195,14 @@ def findFile(root, wanted, followlinks=True):
             if fn==wanted:  
                 return abspath(pjoin(p,fn))
 
+def listFiles(root,followlinks=True,strJoin=None):
+    R = [].append
+    for p, _, F in os.walk(root,followlinks=followlinks):
+        for fn in F:
+            R(abspath(pjoin(p,fn)))
+    R = R.__self__
+    return strJoin.join(R) if strJoin else R
+
 def freetypeVersion(fn,default='20'):
     with open(fn,'r') as _:
         text = _.read()
@@ -221,11 +229,15 @@ class inc_lib_dirs:
                 #probably an M1
                 target = pjoin(
                             ensureResourceStuff('m1stuff.tar.gz','m1stuff','tar'),
-                            'm1stuff','m1stuff','opt','homebrew'
+                            'm1stuff','opt','homebrew'
                             )
-                aDir(L, pjoin(target,'lib'))
-                aDir(I, pjoin(target,'include','freetype2'))
-                print(f'!!!!! {target=}\n!!!!! {L=} {glob.glob(pjoin(L[-1],"*"))}\n!!!!! {I=} {glob.glob(pjoin(I[-1],"*"))}\n!!!!!')
+                _lib = pjoin(target,'lib')
+                _inc = pjoin(target,'include','freetype2')
+                strJoin='\n '
+                print(f'!!!!! {target=}\n!!!!! {_lib=} -->{strJoin}{listFiles(_lib,strJoin=strJoin)}\n!!!!! {_inc=} -->{strJoin}{listFiles(_inc,strJoin=strJoin)}')
+                aDir(L, _lib)
+                aDir(I, _inc)
+                print(f'!!!!! {L=} {I=}')
             elif machine=='x86_64':
                 aDir(L,'/usr/local/lib')
                 aDir(I, "/usr/local/include/freetype2")
