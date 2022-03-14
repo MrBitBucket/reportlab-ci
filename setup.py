@@ -228,13 +228,15 @@ class inc_lib_dirs:
                 #print('!!!!! detected darwin arm64 build')
                 #probably an M1
                 target = pjoin(
-                            ensureResourceStuff('m1stuff.tar.gz','m1stuff','tar'),
+                            ensureResourceStuff('m1stuff.tar.gz','m1stuff','tar',baseDir='/tmp/reportlab-cache'),
                             'm1stuff','opt','homebrew'
                             )
                 _lib = pjoin(target,'lib')
                 _inc = pjoin(target,'include','freetype2')
                 strJoin='\n '
-                #print(f'!!!!! {target=}\n!!!!! {_lib=} -->{strJoin}{listFiles(_lib,strJoin=strJoin)}\n!!!!! {_inc=} -->{strJoin}{listFiles(_inc,strJoin=strJoin)}')
+                print(f'!!!!! {target=}'
+                print(f'!!!!! {_lib=} -->{strJoin}{listFiles(_lib,strJoin=strJoin)}')
+                #print(f'!!!!! {_inc=} -->{strJoin}{listFiles(_inc,strJoin=strJoin)}')
                 aDir(L, _lib)
                 aDir(I, _inc)
                 #print(f'!!!!! {L=} {I=}')
@@ -388,9 +390,10 @@ def ensureResourceStuff(
                 ftpName='winstuff.zip',
                 buildName='winstuff',
                 extract='zip',
+                baseDir=pjoin(pkgDir,'build'),
                 ):
     url='https://www.reportlab.com/ftp/%s' % ftpName
-    target=pjoin(pkgDir,'build',buildName)
+    target=pjoin(baseDir,buildName)
     done = pjoin(target,'.done')
     if not isfile(done):
         if not isdir(target):
