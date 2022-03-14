@@ -234,13 +234,12 @@ class inc_lib_dirs:
                             )
                 _lib = pjoin(target,'lib')
                 _inc = pjoin(target,'include','freetype2')
-                strJoin='\n '
-                print(f'!!!!! {target=}')
-                print(f'!!!!! {_lib=} -->{strJoin}{listFiles(_lib,strJoin=strJoin)}')
-                #print(f'!!!!! {_inc=} -->{strJoin}{listFiles(_inc,strJoin=strJoin)}')
+                #print('!!!!! target=%s' % target)
+                #print('!!!!! _lib=%s -->\n %s'%(_lib,listFiles(_lib,strJoin='\n ')))
+                #print('!!!!! _inc=%s -->\n %s'%(_inc,listFiles(_inc,strJoin='\n ')))
                 aDir(L, _lib)
                 aDir(I, _inc)
-                #print(f'!!!!! {L=} {I=}')
+                #print('!!!!! L=%s I=%s' % (L,I))
             elif machine=='x86_64':
                 aDir(L,'/usr/local/lib')
                 aDir(I, "/usr/local/include/freetype2")
@@ -273,7 +272,7 @@ class inc_lib_dirs:
         for d in I:
             mif = findFile(d,'ft2build.h')
             if mif:
-                print(f'+++++ {d=} --> {mif=!r}')
+                #print('!!!!! d=%s --> mif=%r' % (d,mif))
                 break
         else:
             mif = None
