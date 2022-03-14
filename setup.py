@@ -234,7 +234,7 @@ class inc_lib_dirs:
                 _lib = pjoin(target,'lib')
                 _inc = pjoin(target,'include','freetype2')
                 strJoin='\n '
-                print(f'!!!!! {target=}'
+                print(f'!!!!! {target=}')
                 print(f'!!!!! {_lib=} -->{strJoin}{listFiles(_lib,strJoin=strJoin)}')
                 #print(f'!!!!! {_inc=} -->{strJoin}{listFiles(_inc,strJoin=strJoin)}')
                 aDir(L, _lib)
