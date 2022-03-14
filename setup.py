@@ -225,7 +225,7 @@ class inc_lib_dirs:
         elif platform == "darwin":
             machine = sysconfig_platform.split('-')[-1]
             if machine=='arm64' or os.environ['ARCHFLAGS']=='-arch arm64':
-                print('!!!!! detected darwin arm64 build')
+                #print('!!!!! detected darwin arm64 build')
                 #probably an M1
                 target = pjoin(
                             ensureResourceStuff('m1stuff.tar.gz','m1stuff','tar'),
@@ -234,10 +234,10 @@ class inc_lib_dirs:
                 _lib = pjoin(target,'lib')
                 _inc = pjoin(target,'include','freetype2')
                 strJoin='\n '
-                print(f'!!!!! {target=}\n!!!!! {_lib=} -->{strJoin}{listFiles(_lib,strJoin=strJoin)}\n!!!!! {_inc=} -->{strJoin}{listFiles(_inc,strJoin=strJoin)}')
+                #print(f'!!!!! {target=}\n!!!!! {_lib=} -->{strJoin}{listFiles(_lib,strJoin=strJoin)}\n!!!!! {_inc=} -->{strJoin}{listFiles(_inc,strJoin=strJoin)}')
                 aDir(L, _lib)
                 aDir(I, _inc)
-                print(f'!!!!! {L=} {I=}')
+                #print(f'!!!!! {L=} {I=}')
             elif machine=='x86_64':
                 aDir(L,'/usr/local/lib')
                 aDir(I, "/usr/local/include/freetype2")
