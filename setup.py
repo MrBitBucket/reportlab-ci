@@ -224,7 +224,7 @@ class inc_lib_dirs:
             aDir(L, os.path.join("/usr/lib", "python%s" % sys.version[:3], "config"))
         elif platform == "darwin":
             machine = sysconfig_platform.split('-')[-1]
-            if machine=='arm64' or os.environ['ARCHFLAGS']=='-arch arm64':
+            if machine=='arm64' or os.environ.get('ARCHFLAGS','')=='-arch arm64':
                 #print('!!!!! detected darwin arm64 build')
                 #probably an M1
                 target = pjoin(
