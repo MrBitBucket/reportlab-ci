@@ -227,8 +227,10 @@ class inc_lib_dirs:
             if machine=='arm64' or os.environ['ARCHFLAGS']=='-arch arm64':
                 #print('!!!!! detected darwin arm64 build')
                 #probably an M1
+                baseDir=os.environ.get('RL_CACHE_DIR','/tmp/reportlab')
                 target = pjoin(
-                            ensureResourceStuff('m1stuff.tar.gz','m1stuff','tar',baseDir='/tmp/reportlab-cache'),
+                            ensureResourceStuff('m1stuff.tar.gz','m1stuff','tar',
+                                baseDir='/tmp/reportlab-cache'),
                             'm1stuff','opt','homebrew'
                             )
                 _lib = pjoin(target,'lib')
