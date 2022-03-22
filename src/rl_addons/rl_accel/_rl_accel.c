@@ -15,7 +15,6 @@
 #	define STRICMP strcasecmp
 #elif defined(_MSC_VER)
 #	define STRICMP stricmp
-#	define SIMPLE_EXC 1
 #elif defined(macintosh)
 # include <extras.h>
 # define strdup _strdup
@@ -61,7 +60,8 @@ static void ModifyExcValue(PyObject *exc,const char *fmt,const char *funcname,co
 #define EXC_MOD(exc,...)  ModifyExcValue(exc, "%s\ncaused %s @ %s:%d:" FIRST(__VA_ARGS__),__func__,__FILE__,__LINE__ REST(__VA_ARGS__))
 #define EXC_EXIT(exc,...)  do{if(PyErr_Occurred()) EXC_MOD(exc,__VA_ARGS__); else EXC_SET(exc,__VA_ARGS__);goto L_exit;}while(0)
 #else
-#define EXC_EXIT(exc,...)  do{if(PyErr_Occurred())PyErr_Clear();EXC_SET(exc,__VA_ARGS__);goto L_exit;}while(0)
+/*#define EXC_EXIT(exc,...)  do{if(PyErr_Occurred())PyErr_Clear();EXC_SET(exc,__VA_ARGS__);goto L_exit;}while(0)*/
+#define EXC_EXIT(exc,...)  do{if(!PyErr_Occurred())EXC_SET(exc,__VA_ARGS__);goto L_exit;}while(0)
 #endif
 #define MODULE_STATE_SIZE 0
 

@@ -598,7 +598,7 @@ def main():
 
     debug_compile_args = []
     debug_link_args = []
-    debug_macros = [('SIMPLE_EXC',None)] if int(os.environ.get('SIMPLE_EXC','0')) else []
+    debug_macros = []
     debug = int(os.environ.get('RL_DEBUG','0'))
     if debug:
         if sys.platform == 'win32':
@@ -623,11 +623,13 @@ def main():
         infoline( 'Attempting build of _rl_accel')
         infoline( 'extensions from %r'%RL_ACCEL)
         infoline( '================================================')
+        simple_exc = ([('SIMPLE_EXC',None)] if int(os.environ.get('SIMPLE_EXC','0')) or platform=='win32'
+                        else [])
         EXT_MODULES += [
                     Extension( 'reportlab.lib._rl_accel',
                                 [pjoin(RL_ACCEL,'_rl_accel.c')],
                                 include_dirs=[],
-                            define_macros=[]+debug_macros,
+                            define_macros=simple_exc+debug_macros,
                             library_dirs=[],
                             libraries=[], # libraries to link against
                             extra_compile_args=debug_compile_args,
