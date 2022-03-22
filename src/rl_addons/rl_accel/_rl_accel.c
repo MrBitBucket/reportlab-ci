@@ -15,6 +15,7 @@
 #	define STRICMP strcasecmp
 #elif defined(_MSC_VER)
 #	define STRICMP stricmp
+#	define SIMPLE_EXC 1
 #elif defined(macintosh)
 # include <extras.h>
 # define strdup _strdup
@@ -55,9 +56,13 @@
                 TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, ONE, throwaway)
 #define SELECT_10TH(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, ...) a10
 #define EXC_SET(exc,...)  PyErr_Format(exc, "%s @ %s:%d:" FIRST(__VA_ARGS__),__func__,__FILE__,__LINE__ REST(__VA_ARGS__))
+#ifndef SIMPLE_EXC
 static void ModifyExcValue(PyObject *exc,const char *fmt,const char *funcname,const char* filename, int lineno,...);
 #define EXC_MOD(exc,...)  ModifyExcValue(exc, "%s\ncaused %s @ %s:%d:" FIRST(__VA_ARGS__),__func__,__FILE__,__LINE__ REST(__VA_ARGS__))
 #define EXC_EXIT(exc,...)  do{if(PyErr_Occurred()) EXC_MOD(exc,__VA_ARGS__); else EXC_SET(exc,__VA_ARGS__);goto L_exit;}while(0)
+#else
+#define EXC_EXIT(exc,...)  do{if(PyErr_Occurred())PyErr_Clear();EXC_SET(exc,__VA_ARGS__);goto L_exit;}while(0)
+#endif
 #define MODULE_STATE_SIZE 0
 
 #define a85_0		   1L
@@ -482,6 +487,7 @@ static PyObject *hex32(PyObject *module, PyObject* args)
 	return PyUnicode_FromString(buf);
 }
 
+#ifndef SIMPLE_EXC
 static void ModifyExcValue(PyObject *exc,const char *fmt,const char *funcname,const char* filename, int lineno,...)
 {
 	va_list	ap;
@@ -509,6 +515,7 @@ L_BAD:
 	Py_XDECREF(aval);
 	Py_XDECREF(bval);
 }
+#endif
 
 static PyObject *_GetExcValue(void)
 {

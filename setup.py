@@ -592,13 +592,17 @@ def main():
         if verboseTests:
             cli.append('--verbosity=2')
         r = spCall(cli)
+        try:
+            r = hex(int(r))
+        except:
+            pass
         sys.exit(('!!!!! runAll.py --> %s should exit with error !!!!!' % r) if r else r)
     elif 'null-cmd' in sys.argv or 'null-command' in sys.argv:
         sys.exit(0)
 
     debug_compile_args = []
     debug_link_args = []
-    debug_macros = []
+    debug_macros = [('SIMPLE_EXC',None)] if int(os.environ.get('SIMPLE_EXC','0')) else []
     debug = int(os.environ.get('RL_DEBUG','0'))
     if debug:
         if sys.platform == 'win32':
