@@ -592,10 +592,6 @@ def main():
         if verboseTests:
             cli.append('--verbosity=2')
         r = spCall(cli)
-        try:
-            r = hex(int(r))
-        except:
-            pass
         sys.exit(('!!!!! runAll.py --> %s should exit with error !!!!!' % r) if r else r)
     elif 'null-cmd' in sys.argv or 'null-command' in sys.argv:
         sys.exit(0)
