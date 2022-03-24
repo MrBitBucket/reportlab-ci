@@ -49,7 +49,7 @@ static void ModifyExcValue(PyObject *exc,const char *funcname,int lineno,const c
 	PyErr_NormalizeException(&type, &value, &tb);
 	if(PyErr_Occurred()) goto L_BAD;
 	uval = PyUnicode_FromFormatV(fmt,ap);
-	PyErr_Format(exc,"%U in %s @ %s:%d\ncaused by %A",uval,funcname,__FILE__,lineno,value);
+	PyErr_Format(exc,"%U in %s @ %s:%d\ncaused by %S",uval,funcname,__FILE__,lineno,value);
 
 L_exit:
 	Py_XDECREF(uval);
@@ -64,21 +64,36 @@ L_BAD:
 		}
 	goto L_exit;
 }
-static void _add_TB(PyObject* module,const char* funcname,int lineno, PyObject *exc, const char* fmt, ...)
+
+static void _excAddInfo(const char* funcname,int lineno, PyObject *exc, const char* fmt, va_list ap)
 {
-	PyObject *py_globals = NULL;
-	PyCodeObject *py_code = NULL;
-	PyFrameObject *py_frame = NULL;
 	PyObject *uval = NULL;
-	va_list ap;
-	va_start(ap,fmt);
 	if(PyErr_Occurred()){
 		ModifyExcValue(exc,funcname,lineno,fmt,ap);
 		}
 	else{
 		uval = PyUnicode_FromFormatV(fmt,ap);
 		PyErr_Format(exc,"in %s@%s:%d %U",funcname,__FILE__,lineno,uval);
+		Py_XDECREF(uval);
 		}
+}
+
+static void excAddInfo(const char* funcname,int lineno, PyObject *exc, const char* fmt, ...)
+{
+	va_list ap;
+	va_start(ap,fmt);
+	_excAddInfo(funcname,lineno,exc,fmt,ap);
+	va_end(ap);
+}
+
+static void add_TB(PyObject* module,const char* funcname,int lineno, PyObject *exc, const char* fmt, ...)
+{
+	PyObject *py_globals = NULL;
+	PyCodeObject *py_code = NULL;
+	PyFrameObject *py_frame = NULL;
+	va_list ap;
+	va_start(ap,fmt);
+	_excAddInfo(funcname,lineno,exc,fmt,ap);
 	va_end(ap);
 
 	py_globals = PyModule_GetDict(module);
@@ -99,7 +114,6 @@ static void _add_TB(PyObject* module,const char* funcname,int lineno, PyObject *
 	py_frame->f_lineno = lineno;
 	PyTraceBack_Here(py_frame);
 bad:
-	Py_XDECREF(uval);
 	Py_XDECREF(py_code);
 	Py_XDECREF(py_frame);
 }
@@ -124,8 +138,8 @@ bad:
     SELECT_10TH(__VA_ARGS__, TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE,\
                 TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, ONE, throwaway)
 #define SELECT_10TH(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, ...) a10
-#define EXC_SET(exc,...)  PyErr_Format(exc, "%s @ %s:%d:" FIRST(__VA_ARGS__),__func__,__FILE__,__LINE__ REST(__VA_ARGS__))
-#define EXC_EXIT(exc,...)  do{_add_TB(module,__func__,__LINE__,exc, FIRST(__VA_ARGS__) REST(__VA_ARGS__));goto L_exit;}while(0)
+#define EXC_SET(exc,...) do{excAddInfo(__func__,__LINE__,exc,FIRST(__VA_ARGS__) REST(__VA_ARGS__));}while(0)
+#define EXC_EXIT(exc,...)  do{add_TB(module,__func__,__LINE__,exc, FIRST(__VA_ARGS__) REST(__VA_ARGS__));goto L_exit;}while(0)
 #define MODULE_STATE_SIZE 0
 
 #define a85_0		   1L
@@ -327,12 +341,13 @@ static	char *_fp_one(PyObject* module,PyObject *pD)
 	static	char s[30];
 	int l;
 	char*	dot;
-	if((pD=PyNumber_Float(pD))){
-		d = PyFloat_AS_DOUBLE(pD);
-		Py_DECREF(pD);
+	PyObject *cD;
+	if((cD=PyNumber_Float(pD))){
+		d = PyFloat_AS_DOUBLE(cD);
+		Py_DECREF(cD);
 		}
 	else {
-		PyErr_SetString(PyExc_ValueError, "bad numeric value");
+		EXC_SET(PyExc_ValueError, "bad numeric value %S",pD);
 		return NULL;
 		}
 	ad = fabs(d);
@@ -342,7 +357,7 @@ static	char *_fp_one(PyObject* module,PyObject *pD)
 		}
 	else{
 		if(ad>1e20){
-			PyErr_SetString(PyExc_ValueError, "number too large");
+			EXC_SET(PyExc_ValueError, "number too large %S",pD);
 			return NULL;
 			}
 		if(ad>1) l = min(max(0,6-(int)log10(ad)),6);
@@ -393,7 +408,7 @@ PyObject *_fp_str(PyObject *module, PyObject *args)
 			else pD = NULL;
 			if(!pD){
 				free(buf);
-				return NULL;
+				EXC_EXIT(PyExc_ValueError,"_fp_one failed");
 				}
 			if(pB!=buf){
 				*pB++ = ' ';
@@ -409,7 +424,7 @@ PyObject *_fp_str(PyObject *module, PyObject *args)
 	else {
 		PyErr_Clear();
 		PyArg_ParseTuple(args, "O:_fp_str", &retVal);
-		return NULL;
+L_exit: return NULL;
 		}
 }
 
@@ -571,7 +586,7 @@ L_BAD:
 static PyObject *_GetAttrString(PyObject *obj, char *name)
 {
 	PyObject *res = PyObject_GetAttrString(obj, name);
-	/*if(!res) PyErr_SetString(PyExc_AttributeError, "for attribute %s",name);*/
+	if(!res) EXC_SET(PyExc_AttributeError, "missing attribute %s",name);
 	return res;
 }
 
@@ -593,7 +608,7 @@ static PyObject *_GetStringBuf(PyObject *obj, const char **buf)
 		*buf = PyBytes_AsString(res);
 		}
 	else{
-		PyErr_SetString(PyExc_ValueError, "require bytes or unicode object");
+		EXC_SET(PyExc_ValueError, "require bytes or unicode object");
 		return NULL;
 		}
 	return res;
@@ -666,8 +681,8 @@ static PyObject *unicode2T1(PyObject *module, PyObject *args, PyObject *kwds)
 			Py_DECREF(_o1); _o2 = _o1 = 0;
 
 			if(i){
-				_o1 = PySequence_GetSlice(utext, 0, i); if(!_o1) EXC_EXIT(PyExc_IndexError,"utext[0:i] failed");
-				_o2 = PyUnicode_AsEncodedString(_o1, encStr, NULL); if(!_o2) EXC_EXIT(PyExc_UnicodeEncodeError,"encode(utext[0:i]) failed");
+				_o1 = PySequence_GetSlice(utext, 0, i); if(!_o1) EXC_EXIT(PyExc_IndexError,"utext[0:%d] failed",i);
+				_o2 = PyUnicode_AsEncodedString(_o1, encStr, NULL); if(!_o2) EXC_EXIT(PyExc_UnicodeEncodeError,"encode(utext[0:%d],'%s') failed",i,encStr);
 				Py_DECREF(_o1);
 				_o1 = PyTuple_New(2); if(!_o1) EXC_EXIT(PyExc_MemoryError,"create tuple of length 2 failed");
 				Py_INCREF(font);
@@ -680,7 +695,7 @@ static PyObject *unicode2T1(PyObject *module, PyObject *args, PyObject *kwds)
 
 			_i2 = PyObject_IsTrue(fonts); if(_i2<0) EXC_EXIT(PyExc_ValueError,"bool(fonts) is not True");
 			if(_i2){
-				_o1 = PySequence_GetSlice(utext, i, j); if(!_o1) EXC_EXIT(PyExc_IndexError,"utext[i:j] failed");
+				_o1 = PySequence_GetSlice(utext, i, j); if(!_o1) EXC_EXIT(PyExc_IndexError,"utext[%d:%d] failed",i,j);
 				_o2 = PyTuple_New(2); if(!_o2) EXC_EXIT(PyExc_MemoryError,"create tuple of length 2 failed");
 				PyTuple_SET_ITEM(_o2, 0, _o1);
 				Py_INCREF(fonts);
@@ -698,7 +713,7 @@ static PyObject *unicode2T1(PyObject *module, PyObject *args, PyObject *kwds)
 			else{
 				_o3 = _GetAttrString(font,"_notdefChar");
 				if(!_o3) EXC_EXIT(PyExc_RuntimeError,"missing _notdefChar");
-				_o2 = PyLong_FromLong((j - i)); if(!_o2) EXC_EXIT(PyExc_ValueError,"int((j-i)) failed");
+				_o2 = PyLong_FromLong((j - i)); if(!_o2) EXC_EXIT(PyExc_ValueError,"int((%d - %d)) failed",j,i);
 				_o1 = PyNumber_Multiply(_o3, _o2); if(!_o1) EXC_EXIT(PyExc_ArithmeticError,"_notdefChar multiply failed");
 				Py_DECREF(_o2); Py_DECREF(_o3); _o2=_o3=NULL;
 				_o2 = PyTuple_New(2); if(!_o2) EXC_EXIT(PyExc_MemoryError,"create tuple of length 2 failed");
@@ -711,13 +726,13 @@ static PyObject *unicode2T1(PyObject *module, PyObject *args, PyObject *kwds)
 				Py_DECREF(_o2); _o2 = NULL;
 				}
 
-			_o1 = PySequence_GetSlice(utext, j, 0x7fffffff); if(!_o1) EXC_EXIT(PyExc_IndexError,"utext[j:] failed");
+			_o1 = PySequence_GetSlice(utext, j, 0x7fffffff); if(!_o1) EXC_EXIT(PyExc_IndexError,"utext[%d:] failed",j);
 			Py_DECREF(utext);
 			utext = _o1;
 			_o1 = NULL;
 			}
 		}
-	if(_i1<0) EXC_EXIT(PyExc_ValueError,"_i1 became negative");
+	if(_i1<0) EXC_EXIT(PyExc_ValueError,"_i1=%d became negative",_i1);
 
 	Py_INCREF(R);
 	res = R;
@@ -787,10 +802,10 @@ static PyObject *instanceStringWidthT1(PyObject *module, PyObject *args, PyObjec
 	n = PyList_GET_SIZE(L);
 
 	for(s=i=0;i<n;++i){
-		_o1 = PyList_GetItem(L,i); if(!_o1) EXC_EXIT(PyExc_IndexError,"L[i] failed");
+		_o1 = PyList_GetItem(L,i); if(!_o1) EXC_EXIT(PyExc_IndexError,"L[%d] failed",i);
 		Py_INCREF(_o1);
 
-		_o2 = PySequence_GetItem(_o1, 0); if(!_o2) EXC_EXIT(PyExc_IndexError,"L[i][0] failed");
+		_o2 = PySequence_GetItem(_o1, 0); if(!_o2) EXC_EXIT(PyExc_IndexError,"L[%d][0] failed",i);
 		Py_XDECREF(f);
 		f = _o2;
 		_o2 = NULL;
@@ -800,7 +815,7 @@ static PyObject *instanceStringWidthT1(PyObject *module, PyObject *args, PyObjec
 		f = _o2;
 		_o2 = NULL;
 
-		_o2 = PySequence_GetItem(_o1, 1); if(!_o2) EXC_EXIT(PyExc_IndexError,"L[i][1] failed");
+		_o2 = PySequence_GetItem(_o1, 1); if(!_o2) EXC_EXIT(PyExc_IndexError,"L[%d][1] failed",i);
 		Py_XDECREF(t);
 		t = _o2;
 		Py_DECREF(_o1);
@@ -811,7 +826,7 @@ static PyObject *instanceStringWidthT1(PyObject *module, PyObject *args, PyObjec
 
 		for(j=0;j<m;++j){
 			_i1 = (long)(b[j]);
-			_o2 = PyList_GetItem(f,_i1); if(!_o2) {EXC_EXIT(PyExc_IndexError,"widths index _i1 out of range");}
+			_o2 = PyList_GetItem(f,_i1); if(!_o2) {EXC_EXIT(PyExc_IndexError,"widths index %d out of range",_i1);}
 			_i1 = PyLong_AsLong(_o2);
 			_o2 = NULL;	/*we borrowed this*/
 			if(PyErr_Occurred()) EXC_EXIT(PyExc_RuntimeError,"longint conversion failed");
@@ -859,7 +874,7 @@ static PyObject *instanceStringWidthTTF(PyObject *module, PyObject *args, PyObje
 		}
 
 	if(!PyUnicode_Check(text)){
-		i = PyObject_IsTrue(encoding); if(i<0) EXC_EXIT(PyExc_RuntimeError,"truth(encoding)<0");
+		i = PyObject_IsTrue(encoding); if(i<0) EXC_EXIT(PyExc_RuntimeError,"truth(encoding)=%d",i);
 		if(!i){
 			Py_DECREF(encoding);
 			encoding = PyUnicode_FromString("utf8"); if(!encoding) EXC_EXIT(PyExc_UnicodeDecodeError,"utf8 decode failed");
@@ -962,7 +977,7 @@ static int Box_set_character(BoxObject *self, PyObject *value)
 		char *v = PyBytes_AsString(value);
 		if(!v) return -1;
 		if(PyBytes_GET_SIZE(value)!=1){
-			PyErr_Format(PyExc_AttributeError,"Bad size %d('%s') for attribute character",PyBytes_GET_SIZE(value),v);
+			EXC_SET(PyExc_AttributeError,"Bad size %d('%s') for attribute character",PyBytes_GET_SIZE(value),v);
 			return -1;
 			}
 		self->character = v[0];
@@ -984,8 +999,8 @@ static int Box_setattr(BoxObject *self, char *name, PyObject* value)
 			!strcmp(name,"is_penalty") ||
 			!strcmp(name,"is_box") ||
 			!strcmp(name,"is_glue")
-			) PyErr_Format(PyExc_AttributeError, "readonly attribute %s", name);
-	else PyErr_Format(PyExc_AttributeError, "no attribute %s", name);
+			) EXC_SET(PyExc_AttributeError, "readonly attribute %s", name);
+	else EXC_SET(PyExc_AttributeError, "no attribute %s", name);
 	return -1;
 }
 
@@ -1243,6 +1258,8 @@ static PyTypeObject BoxList_type = {
 	"\tGlue(width,stretch,shrink) creates a Knuth glue Box with the specified width, stretch and shrink.\n" \
 	"\tPenalty(width,penalty,flagged=0) creates a Knuth penalty Box with the specified width and penalty.\n" \
 	"\tBoxList() creates a knuth box list.\n"
+#else
+#define _BOX__DOC__
 #endif
 
 PyDoc_STRVAR(__DOC__,
