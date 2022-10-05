@@ -67,7 +67,9 @@ documentLang
 encryptionStrength
 trustedHosts
 trustedSchemes
-renderPMBackend'''.split())
+renderPMBackend
+xmlParser
+textPaths'''.split())
 
 allowTableBoundsErrors =    1 # set to 0 to die on too large elements in tables in debug (recommend 1 for production use)
 shapeChecking =             1
@@ -101,11 +103,7 @@ canvas_basefontname=        'Helvetica'             #this is used to initialize 
                                                     #if the bold/italic/bold italic fonts are also registered and defined as a family.
 
 allowShortTableRows=1                               #allows some rows in a table to be short
-imageReaderFlags=0                                  #attempt to convert images into internal memory files to reduce
-                                                    #the number of open files (see lib.utils.ImageReader)
-                                                    #if imageReaderFlags&2 then attempt autoclosing of those files
-                                                    #if imageReaderFlags&4 then cache data 
-                                                    #if imageReaderFlags==-1 then use Ralf Schmitt's re-opening approach
+imageReaderFlags=0                                  #no longer in use
 paraFontSizeHeightOffset=   1                       #if true paragraphs start at height-fontSize
 canvas_baseColor=           None                    #initialize the canvas fill and stroke colors if this is set
 ignoreContainerActions=     1                       #if true then action flowables in flowable _Containers will be ignored
@@ -161,6 +159,10 @@ trustedHosts=None                                   #set to a list of trusted fo
 trustedSchemes=['file', 'rml', 'data', 'https',     #these url schemes are trusted
                 'http', 'ftp']
 renderPMBackend='_renderPM'                         #or 'rlPyCairo' if available
+xmlParser='lxml'                                    #or 'pyrxp' for preferred xml parsing
+textPaths='backend'                                 #freetype or _renderPM or backend
+                                                    #determines what code is used to create Paths from str
+                                                    #see reportlab/graphics/utils.py for full horror
 
 # places to look for T1Font information
 T1SearchPath =  (

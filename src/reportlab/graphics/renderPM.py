@@ -92,7 +92,7 @@ class _PMRenderer(Renderer):
 
     def initState(self,x,y):
         deltas = self._tracker._combined[-1]
-        deltas['transform'] = self._canvas._baseCTM[0:4]+(x,y)
+        deltas['transform'] = deltas['ctm'] = self._canvas._baseCTM[0:4]+(x,y)
         self._tracker.push(deltas)
         self.applyState()
 
@@ -288,7 +288,7 @@ class PMCanvas:
     def _getGState(w, h, bg, backend='_renderPM', fmt='RGB24'):
         if backend=='_renderPM':
             return _renderPM.gstate(w,h,bg=bg)
-        elif backend=='rlPyCairo':
+        elif 'cairo' in backend.lower():
             try:
                 from rlPyCairo import GState
             except ImportError:

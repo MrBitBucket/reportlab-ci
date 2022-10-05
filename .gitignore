@@ -17,6 +17,7 @@
 /src/reportlab/fonts/zd______.pfb
 /src/reportlab/fonts/zx______.pfb
 /src/reportlab/fonts/zy______.pfb
+/src/reportlab/fonts/_a______.afm
 /src/reportlab/pdfbase/_glyphlist.py
 /src/rl_addons/renderPM/libart_lgpl/art_config.h
 /build/
@@ -25,6 +26,9 @@
 /bin/
 /include/
 /.hg/
+/.hgignore
+/.hgeol
+/.hgtags
 /tmp/
 /dist/
 __pycache__
@@ -32,7 +36,7 @@ __pycache__
 /docs/reportlab-userguide.pdf
 /tests/_i_am_actually_a_gif.jpg
 /tests/_i_am_actually_a_jpeg.gif
-tests/axestest0.*
+/tests/axestest0.*
 /tests/*/
 /tests/test_graphics_images-*
 /tests/pythonpoint.pdf
@@ -43,3 +47,19 @@ tests/axestest0.*
 /tests/test_*.txt
 /tests/test_*.png
 /tests/test_*.ps
+/demos/gadflypaper/gfe.pdf
+/demos/odyssey/dodyssey.pdf
+/demos/stdfonts/StandardFonts_MacRoman.pdf
+/demos/stdfonts/StandardFonts_WinAnsi.pdf
+/docs/images/jpegrgb_dissected.png
+/src/reportlab/graphics/barcode/out.pdf
+/src/reportlab/graphics/barcode/test_cbcim.gif
+/src/reportlab/graphics/barcode/test_cbcim.pdf
+/src/reportlab/graphics/barcode/test_cbcim.png
+/src/reportlab/graphics/barcode/test_cbcim.tiff
+/src/reportlab/graphics/barcode/test_full.pdf
+/src/reportlab/graphics/pmout/
+/tests/7x11.jpg
+/tests/7x11.png
+/tests/test_table_inrowsplit.py
+/tests/test_table_inrowsplit.py.rej

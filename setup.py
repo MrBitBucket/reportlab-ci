@@ -1,6 +1,6 @@
 #Copyright ReportLab Europe Ltd. 2000-2021
 #see license.txt for license details
-__version__='3.6.3'
+__version__='3.6.12'
 import os, sys, glob, shutil, re, sysconfig, traceback, io, subprocess
 from configparser import RawConfigParser
 from urllib.parse import quote as urlquote
@@ -189,15 +189,40 @@ def aDir(P, d, x=None):
         else:
             P.insert(x, d)
 
+# protection against loops needed. reported by
+# Michał Górny &lt; mgorny at gentoo dot org &gt;
+# see https://stackoverflow.com/questions/36977259
 def findFile(root, wanted, followlinks=True):
-    for p, _, F in os.walk(root,followlinks=followlinks):
+    visited = set()
+    for p, D, F in os.walk(root,followlinks=followlinks):
+        #scan directories to check for prior visits
+        #use dev/inode to make unique key
+        SD = [].append
+        for d in D:
+            dk = os.stat(pjoin(p,d))
+            dk = dk.st_dev, dk.st_ino
+            if dk not in visited:
+                visited.add(dk)
+                SD(d)
+        D[:] = SD.__self__  #set the dirs to be scanned
         for fn in F:
             if fn==wanted:  
                 return abspath(pjoin(p,fn))
 
 def listFiles(root,followlinks=True,strJoin=None):
+    visited = set()
     R = [].append
-    for p, _, F in os.walk(root,followlinks=followlinks):
+    for p, D, F in os.walk(root,followlinks=followlinks):
+        #scan directories to check for prior visits
+        #use dev/inode to make unique key
+        SD = [].append
+        for d in D:
+            dk = os.stat(pjoin(p,d))
+            dk = dk.st_dev, dk.st_ino
+            if dk not in visited:
+                visited.add(dk)
+                SD(d)
+        D[:] = SD.__self__  #set the dirs to be scanned
         for fn in F:
             R(abspath(pjoin(p,fn)))
     R = R.__self__
@@ -279,6 +304,12 @@ class inc_lib_dirs:
         if mif:
             d = dirname(mif)
             I = [dirname(d), d]
+
+            #fix for some RHEL systems from James Brown jbrown at easypost dot com
+            subdir = pjoin(d,'freetype2')
+            if isdir(subdir):
+                I.append(subdir)
+
             ftv = freetypeVersion(findFile(d,'freetype.h'),'22')
         else:
             print('!!!!! cannot find ft2build.h')
@@ -813,10 +844,10 @@ def main():
                 ],
             
             #this probably only works for setuptools, but distutils seems to ignore it
-            install_requires=['pillow>=4.0.0'],
+            install_requires=['pillow>=9.0.0'],
             python_requires='>=3.7, <4',
             extras_require={
-                'RLPYCAIRO': ['rlPyCairo>=0.0.5'],
+                'RLPYCAIRO': ['rlPyCairo>=0.0.8'],
                 },
             )
         print()

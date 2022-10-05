@@ -11,6 +11,30 @@ E.g. to retrieve the changes made between release 3.4 and release 3.5, type::
 The contributors lists are in no order and apologies to those accidentally not
 mentioned. If we missed you, please let us know!
 
+CHANGES  3.6.12  30/08/2022
+---------------------------
+	* fix dpi handling in renderPM.py; bug found by Terry Zhao Terry dot Zhao at fil dot com
+	* attempt fix in rparsexml.py
+	* add rl_settings.xmlParser with default 'lxml'
+	* nano RHEL related fix to setup.py contributed by James Brown jbrown at easypost dot com
+	* minor speedup in reportlab.graphics.transform functions
+
+CHANGES  3.6.11  24/06/2022
+---------------------------
+	* support HORIZONTAL2 & VERTICAL2 table cell backgrounds; as suggested by Sina Khelil < sina at khelil dot com >
+	* support general LINEAR & RADIAL gradient table cell backgrounds
+	* support ShowBoundaryValue in canv.drawImage
+
+CHANGES  3.6.10  31/05/2022
+---------------------------
+	* fix symlink looping in setup.py reported by Michał Górny &lt; mgorny at gentoo dot org &gt;
+	* allow bearerBox attribute for some barcodes
+	* require pillow>=9.0.0 patch contributed by Claude Paroz claude at 2xlibre.net
+	* Apply Claude Paroz  < claude at 2xlibre dot net > patch to assume hashlib md5 exists
+	* ImageReader updated to allow deepcopy; similarly for doctemplate.onDrawStr
+	* fix 3.11.0b2 regression in rl_safe_eval.
+	* apply massive contribution for Table inRowSplit from Lennart Regebro < lregebro at shoobx dot com >
+
 CHANGES  3.6.9   22/03/2022
 ---------------------------
 	* fix up _rl_accel.c 0.81 to allow better error messages and support python 3.11.0a6
