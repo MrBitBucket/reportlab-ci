@@ -89,7 +89,6 @@ def __makeTextPathsCode__(tp=None):
 
                 def _text2Path(self, text, x=0, y=0, fontName=_baseGFontName, fontSize=1000, **kwds):
                     face, font = self.setFont(fontName)
-                    print(f'{face.units_per_EM=}')
                     scale = fontSize/face.units_per_EM  #font scaling
                     __dx__ = x/scale
                     __dy__ = y/scale
@@ -167,7 +166,6 @@ def __makeTextPathsCode__(tp=None):
                 nm1 = len(FT)-1
                 for i, (f, t) in enumerate(FT):
                     if isinstance(t,bytes): t = t.decode(f.encName)
-                    print(f'{f.fontName=} {f.encoding.name=!s}@{hex(id(f.encoding))} {t=!a}')
                     P_extend(gs._text2Path(t,x=x,y=y,fontName=f.fontName,fontSize=fontSize, truncate=truncate,pathReverse=pathReverse))
                     if i!=nm1:
                         x += f.stringWidth(t, fontSize)
