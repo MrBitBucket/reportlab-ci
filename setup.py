@@ -844,7 +844,7 @@ def main():
                 ],
             
             #this probably only works for setuptools, but distutils seems to ignore it
-            install_requires=['pillow<9.1,>9.2'],
+            install_requires=['pillow>=9.0.0'],
             python_requires='>=3.7,<4',
             extras_require={
                 'RLPYCAIRO': ['rlPyCairo>=0.1.0'],          #for using cairo as renderPM backend
