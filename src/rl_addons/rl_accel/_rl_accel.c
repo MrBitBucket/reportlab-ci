@@ -822,6 +822,7 @@ static PyObject *instanceStringWidthTTF(PyObject *module, PyObject *args, PyObje
 {
 	PyObject *self, *text, *size, *res,
 				*encoding = 0, *_o1=NULL, *_o2=NULL, *_o3=NULL;
+	Py_UCS4 *b=NULL;
 	Py_ssize_t n;
 	int	i;
 	double s, _d1, dw;
@@ -867,9 +868,11 @@ static PyObject *instanceStringWidthTTF(PyObject *module, PyObject *args, PyObje
 	Py_DECREF(_o3);	_o3=NULL;
 
 	n = PyUnicode_GET_LENGTH(text);
+	b = PyUnicode_AsUCS4Copy(text);
+	if(!b) EXC_EXIT(PyExc_MemoryError,"memory failed for UCS4Copy");
 
 	for(s=i=0;i<n;++i){
-		_o3 = PyLong_FromLong(PyUnicode_ReadChar(text,i)); if(!_o3) EXC_EXIT(PyExc_RuntimeError,"FromLong failed");
+		_o3 = PyLong_FromLong((long)b[i]); if(!_o3) EXC_EXIT(PyExc_RuntimeError,"FromLong failed");
 		_o2 = PyDict_GetItem(_o1,_o3);
 		Py_DECREF(_o3); _o3 = NULL;
 		if(!_o2) _d1 = dw;
@@ -884,16 +887,17 @@ static PyObject *instanceStringWidthTTF(PyObject *module, PyObject *args, PyObje
 	_o1 = PyFloat_FromDouble((s * 0.001)); if(!_o1) EXC_EXIT(PyExc_RuntimeError,"float(s*0.001) failed");
 	res = PyNumber_Multiply(_o1, size); if(!res) EXC_EXIT(PyExc_RuntimeError,"multiply by size failed");
 	Py_DECREF(_o1);
-	goto L_OK;
+L_OK:
+	if(b) PyMem_Free(b);
+	Py_DECREF(text);
+	Py_DECREF(encoding);
+	return res;
 L_exit:
 	Py_XDECREF(_o1);
 	Py_XDECREF(_o2);
 	Py_XDECREF(_o3);
 	res = NULL;
-L_OK:
-	Py_DECREF(text);
-	Py_DECREF(encoding);
-	return res;
+	goto L_OK;
 }
 
 #define HAVE_BOX
