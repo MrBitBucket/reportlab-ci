@@ -21,12 +21,12 @@ jobs:
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
       - name: setup python for clear-cache
-        #if: github.event.repository.name == 'reportlab-mirror'
+        if: github.event.repository.name == 'reportlab-ci'
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
       - name: clear
-        #if: github.event.repository.name == 'reportlab-mirror'
+        if: github.event.repository.name == 'reportlab-ci'
         env:
           CITOOLS_USER: "${{secrets.CITOOLS_USER}}"
           CITOOLS_PASSWORD: "${{secrets.CITOOLS_PASSWORD}}"
@@ -93,7 +93,7 @@ jobs:
           CITOOLS_PASSWORD: "${{secrets.CITOOLS_PASSWORD}}"
         run: |
           python -mpip install --no-cache https://hg.reportlab.com/hg-public/rl-ci-tools/archive/tip.tar.gz -U
-          python -mrl_ci_tools upload-caches --subdir="reportlab" --verbosity=1 ./wheelhouse/*.whl
+          python -mrl_ci_tools upload-caches --subdir="${{ github.event.repository.name }}" --verbosity=1 ./wheelhouse/*.whl
           python -mrl_ci_tools env-upload
 
       - uses: actions/upload-artifact@v3
@@ -101,7 +101,7 @@ jobs:
           name: "${{ github.event.repository.name }}-lin-win-mac"
           path: ./wheelhouse/*.whl
   email:
-    #if: github.event.repository.name == 'reportlab-mirror'
+    if: github.event.repository.name == 'reportlab-ci'
     name: email
     needs: [build-wheels-linux-mac-windows]
     runs-on: ubuntu-latest
