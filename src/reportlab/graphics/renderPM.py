@@ -27,9 +27,9 @@ def _getPMBackend(backend=None):
     if not backend: backend = rl_config.renderPMBackend
     if backend=='_renderPM':
         try:
-            import _rl_renderPM as M
+            from reportlab.graphics import _renderPM as M
         except ImportError as errMsg:
-            raise ImportError("""No module named _rl_renderPM
+            raise ImportError("""No module named _renderPM
 it may be badly or not installed!
 You may need to install development tools
 or seek advice at the users list see

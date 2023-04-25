@@ -267,9 +267,9 @@ def fullTest(fileName):
     SimpleDocTemplate(fileName).build(story)
 
 try:
-    from reportlab.graphics import renderPM
+    from reportlab.graphics import _renderPM
 except ImportError:
-    renderPM = None
+    _renderPM = None
 
 class BarcodeWidgetTestCase(unittest.TestCase):
     "Test barcode classes."
@@ -283,7 +283,7 @@ class BarcodeWidgetTestCase(unittest.TestCase):
         for x in glob.glob(os.path.join(outDir,'*')):
             os.remove(x)
 
-    @unittest.skipIf(not renderPM,'no renderPM')
+    @unittest.skipIf(not _renderPM,'no _renderPM')
     def test0(self):
         from reportlab.graphics.shapes import Drawing
         outDir = self.outDir

@@ -32,9 +32,9 @@ from reportlab.graphics.widgets.markers import makeMarker
 from reportlab.graphics.widgets.adjustableArrow import AdjustableArrowDrawing
 
 try:
-    from reportlab.graphics import renderPM
+    from reportlab.graphics import _renderPM
 except ImportError:
-    renderPM = None
+    _renderPM = None
 
 def getFontName():
     try:
@@ -519,7 +519,7 @@ class ChartTestCase(unittest.TestCase):
             story.append(makeArrow(y=-10,x=deltax*i,angle=angle,strokeColor=colors.black,strokeWidth=0.5,headSweep=-i*0.6))
         story.append(Spacer(0,1*cm))
 
-    @unittest.skipIf(not renderPM,'no renderPM')
+    @unittest.skipIf(not _renderPM,'no _renderPM')
     def test8(self):
         '''text _text2Path'''
         story = self.story
