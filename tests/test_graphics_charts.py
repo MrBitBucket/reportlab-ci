@@ -355,11 +355,13 @@ class ChartTestCase(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         "Hook method for deconstructing the test fixture after testing it."
-
+        global fontName
+        fontName = getFontName()
         path=outputfile('test_graphics_charts.pdf')
         doc = MyDocTemplate(path)
         doc.build(cls.story)
 
+        fontName = 'Helvetica'
         run_samples([(k,v,'special') for k,v in globals().items() if k.lower().startswith('sample')
                             or k in ('lpleg', 'hlcleg', 'bcleg', 'pcleg', 'scleg', 'plpleg')
                             ])
